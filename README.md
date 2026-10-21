@@ -15,5 +15,5 @@ pip install pyinstaller
 Logo em seguida, é preciso ir até local onde se encontra o arquivo app.py e rodar o comando:
 
 ```bash
-pyinstaller --noconsole --onefile app.py
+pyinstaller --onefile main.py
 ```
