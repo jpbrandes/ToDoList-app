@@ -117,12 +117,12 @@ class TodoApp(ctk.CTk):
             lbl_texto = ctk.CTkLabel(row_frame, text=texto_exibicao, font=("Segoe UI", 13), text_color=cor_texto, anchor="w")
             lbl_texto.pack(side="left", fill="x", expand=True, padx=10, pady=8)
 
-            # Botão de Notas (📝): Laranja com texto preto
+            # Botão de Notas (): Laranja com texto preto
             btn_linha_notas = ctk.CTkButton(
                 row_frame, 
-                text="📝", 
+                text="Notas", # Esse é o ícone presente no botão
                 font=("Segoe UI", 12, "bold"), 
-                text_color="#000000",
+                text_color="#FFFFFF",
                 width=36, 
                 height=30, 
                 corner_radius=6, 
