@@ -17,3 +17,5 @@ Logo em seguida, é preciso ir até local onde se encontra o arquivo app.py e ro
 ```bash
 pyinstaller --onefile main.py
 ```
+
+Após isso, vá até a pasta dist e o executável exe estará lá.
