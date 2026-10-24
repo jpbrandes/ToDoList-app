@@ -19,3 +19,15 @@ pyinstaller --onefile Todolist.py
 ```
 
 Após isso, vá até a pasta dist e o executável exe estará lá.
+
+---
+
+# Dependências do projeto
+
+O projeto usa as seguintes dependências:
+
+```bash
+pip install customtkinter tkcalendar pillow
+```
+
+Isso sem contar o SQLite e Python como linguagem base.
