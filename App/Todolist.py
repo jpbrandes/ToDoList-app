@@ -220,13 +220,13 @@ class TodoApp(ctk.CTk):
             elif tipo == "limpar":
                 self.excluir_todas_tarefas()
 
-        btn_focar = ctk.CTkButton(frame_opcoes, text="➕ Nova Tarefa  (Ctrl + N)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=36, command=lambda: executar_comando("focar"))
+        btn_focar = ctk.CTkButton(frame_opcoes, text="Nova Tarefa  (Ctrl + N)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=36, command=lambda: executar_comando("focar"))
         btn_focar.pack(fill="x", pady=2)
 
-        btn_cal = ctk.CTkButton(frame_opcoes, text="📅 Abrir Calendário  (Ctrl + C)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=36, command=lambda: executar_comando("calendario"))
+        btn_cal = ctk.CTkButton(frame_opcoes, text="Abrir Calendário  (Ctrl + C)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=36, command=lambda: executar_comando("calendario"))
         btn_cal.pack(fill="x", pady=2)
 
-        btn_limpar = ctk.CTkButton(frame_opcoes, text="🗑️ Limpar Todas as Tarefas  (Ctrl + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=36, command=lambda: executar_comando("limpar"))
+        btn_limpar = ctk.CTkButton(frame_opcoes, text="Limpar Todas as Tarefas  (Ctrl + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=36, command=lambda: executar_comando("limpar"))
         btn_limpar.pack(fill="x", pady=2)
 
     def abrir_calendario(self):
