@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 import sqlite3
+from tkcalendar import Calendar
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -37,25 +38,34 @@ class TodoApp(ctk.CTk):
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
+        # Atalhos de Teclado Globais
+        self.bind("<Control-slash>", lambda event: self.abrir_menu_comandos())
+        self.bind("<Control-n>", lambda event: self.focar_nova_tarefa())
+        self.bind("<Control-c>", lambda event: self.abrir_calendario())
+        self.bind("<Control-d>", lambda event: self.excluir_todas_tarefas())
+
         # Título Principal
-        self.titulo_label = ctk.CTkLabel(self, text="ToDoList", font=("Segoe UI", 22, "bold"))
+        self.titulo_label = ctk.CTkLabel(self, text="Minha To-Do List", font=("Segoe UI", 22, "bold"))
         self.titulo_label.pack(pady=(20, 10))
 
-        # Container para Input e Botão Adicionar
+        # Container para Input, Botão Adicionar e Botão Calendário
         self.input_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.input_frame.pack(fill="x", padx=25, pady=(0, 10))
 
         self.entrada_tarefa = ctk.CTkEntry(self.input_frame, placeholder_text="O que você precisa fazer?", font=("Segoe UI", 13), height=42, corner_radius=8)
-        self.entrada_tarefa.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.entrada_tarefa.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+        self.btn_calendario = ctk.CTkButton(self.input_frame, text="📅", font=("Segoe UI", 14), width=42, height=42, corner_radius=8, fg_color="#374151", hover_color="#4b5563", command=self.abrir_calendario)
+        self.btn_calendario.pack(side="left", padx=(0, 8))
 
         self.btn_adicionar = ctk.CTkButton(self.input_frame, text="Adicionar", font=("Segoe UI", 12, "bold"), height=42, corner_radius=8, command=self.adicionar_tarefa)
         self.btn_adicionar.pack(side="right")
 
-        # Área de Rolagem Moderna para listar as tarefas (Expande e contrai dinamicamente sem cobrir os botões)
-        self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Tarefas Pendentes", label_font=("Segoe UI", 12, "bold"), corner_radius=10)
+        # Área de Rolagem Moderna para listar as tarefas
+        self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Tarefas Pendentes (Ctrl + / para Comandos)", label_font=("Segoe UI", 11, "bold"), corner_radius=10)
         self.scroll_frame.pack(fill="both", expand=True, padx=25, pady=(0, 10))
 
-        # Container fixo inferior para os botões globais (Garante que nunca sejam cortados)
+        # Container fixo inferior para os botões globais
         self.acoes_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.acoes_frame.pack(fill="x", padx=25, pady=(0, 20))
 
@@ -117,12 +127,11 @@ class TodoApp(ctk.CTk):
             lbl_texto = ctk.CTkLabel(row_frame, text=texto_exibicao, font=("Segoe UI", 13), text_color=cor_texto, anchor="w")
             lbl_texto.pack(side="left", fill="x", expand=True, padx=10, pady=8)
 
-            # Botão de Notas (): Laranja com texto preto
             btn_linha_notas = ctk.CTkButton(
                 row_frame, 
-                text="Notas", # Esse é o ícone presente no botão
+                text="📝", 
                 font=("Segoe UI", 12, "bold"), 
-                text_color="#FFFFFF",
+                text_color="#000000",
                 width=36, 
                 height=30, 
                 corner_radius=6, 
@@ -172,6 +181,9 @@ class TodoApp(ctk.CTk):
         else:
             self.btn_excluir_todas.configure(fg_color="#4b5563", hover_color="#4b5563", state="disabled")
 
+    def focar_nova_tarefa(self):
+        self.entrada_tarefa.focus()
+
     def adicionar_tarefa(self):
         texto = self.entrada_tarefa.get().strip()
         if not texto:
@@ -186,6 +198,56 @@ class TodoApp(ctk.CTk):
 
         self.entrada_tarefa.delete(0, "end")
         self.carregar_tarefas()
+
+    def abrir_menu_comandos(self):
+        janela_cmd = ctk.CTkToplevel(self)
+        janela_cmd.title("Paleta de Comandos")
+        janela_cmd.geometry("420x340")
+        janela_cmd.grab_set()
+
+        lbl_titulo = ctk.CTkLabel(janela_cmd, text="Comandos Rápidos & Atalhos", font=("Segoe UI", 13, "bold"))
+        lbl_titulo.pack(pady=(15, 10), padx=20, anchor="w")
+
+        frame_opcoes = ctk.CTkScrollableFrame(janela_cmd, corner_radius=8)
+        frame_opcoes.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+
+        def executar_comando(tipo):
+            janela_cmd.destroy()
+            if tipo == "focar":
+                self.focar_nova_tarefa()
+            elif tipo == "calendario":
+                self.abrir_calendario()
+            elif tipo == "limpar":
+                self.excluir_todas_tarefas()
+
+        btn_focar = ctk.CTkButton(frame_opcoes, text="➕ Nova Tarefa  (Ctrl + N)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=36, command=lambda: executar_comando("focar"))
+        btn_focar.pack(fill="x", pady=2)
+
+        btn_cal = ctk.CTkButton(frame_opcoes, text="📅 Abrir Calendário  (Ctrl + C)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=36, command=lambda: executar_comando("calendario"))
+        btn_cal.pack(fill="x", pady=2)
+
+        btn_limpar = ctk.CTkButton(frame_opcoes, text="🗑️ Limpar Todas as Tarefas  (Ctrl + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=36, command=lambda: executar_comando("limpar"))
+        btn_limpar.pack(fill="x", pady=2)
+
+    def abrir_calendario(self):
+        janela_cal = ctk.CTkToplevel(self)
+        janela_cal.title("Calendário de Prazos")
+        janela_cal.geometry("340x370")
+        janela_cal.grab_set()
+
+        lbl_cal = ctk.CTkLabel(janela_cal, text="Selecione uma Data para Prazo:", font=("Segoe UI", 13, "bold"))
+        lbl_cal.pack(pady=(15, 10))
+
+        cal = Calendar(janela_cal, selectmode='day', year=2026, month=10, day=24, background='#1f2937', disabledbackground='#2a2a2a', bordercolor='#374151', headersbackground='#374151', normalbackground='#2a2a2a', foreground='white', normalforeground='white', selectbackground='#1d4ed8')
+        cal.pack(padx=20, pady=(0, 15), fill="both", expand=True)
+
+        def selecionar_data():
+            data_escolhida = cal.get_date()
+            self.entrada_tarefa.insert("end", f" [Prazo: {data_escolhida}]")
+            janela_cal.destroy()
+
+        btn_confirmar = ctk.CTkButton(janela_cal, text="Inserir Prazo na Tarefa", font=("Segoe UI", 12, "bold"), fg_color="#16a34a", hover_color="#15803d", height=36, corner_radius=6, command=selecionar_data)
+        btn_confirmar.pack(fill="x", padx=20, pady=(0, 20))
 
     def abrir_janela_notas(self, tarefa_id, titulo_tarefa):
         conn = conectar_db()
