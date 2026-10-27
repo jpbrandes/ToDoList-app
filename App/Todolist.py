@@ -40,12 +40,17 @@ class TodoApp(ctk.CTk):
 
         # Atalhos de Teclado Globais
         self.bind("<Control-slash>", lambda event: self.abrir_menu_comandos())
-        self.bind("<Control-n>", lambda event: self.focar_nova_tarefa())
-        self.bind("<Control-c>", lambda event: self.abrir_calendario())
-        self.bind("<Control-d>", lambda event: self.excluir_todas_tarefas())
+        self.bind("<Control-n>", lambda event: self.atalho_focar_nova(event))
+        self.bind("<Control-N>", lambda event: self.atalho_focar_nova(event))
+        self.bind("<Control-c>", lambda event: self.atalho_abrir_calendario(event))
+        self.bind("<Control-C>", lambda event: self.atalho_abrir_calendario(event))
+        self.bind("<Control-d>", lambda event: self.atalho_excluir_selecionada(event))
+        self.bind("<Control-D>", lambda event: self.atalho_excluir_selecionada(event))
+        self.bind("<Control-Shift-d>", lambda event: self.atalho_excluir_todas(event))
+        self.bind("<Control-Shift-D>", lambda event: self.atalho_excluir_todas(event))
 
         # Título Principal
-        self.titulo_label = ctk.CTkLabel(self, text="Minha To-Do List", font=("Segoe UI", 22, "bold"))
+        self.titulo_label = ctk.CTkLabel(self, text="To-Do List", font=("Segoe UI", 22, "bold"))
         self.titulo_label.pack(pady=(20, 10))
 
         # Container para Input, Botão Adicionar e Botão Calendário
@@ -184,6 +189,22 @@ class TodoApp(ctk.CTk):
     def focar_nova_tarefa(self):
         self.entrada_tarefa.focus()
 
+    def atalho_focar_nova(self, event):
+        self.focar_nova_tarefa()
+        return "break"
+
+    def atalho_abrir_calendario(self, event):
+        self.abrir_calendario()
+        return "break"
+
+    def atalho_excluir_selecionada(self, event):
+        self.excluir_tarefa_selecionada()
+        return "break"
+
+    def atalho_excluir_todas(self, event):
+        self.excluir_todas_tarefas()
+        return "break"
+
     def adicionar_tarefa(self):
         texto = self.entrada_tarefa.get().strip()
         if not texto:
@@ -202,7 +223,6 @@ class TodoApp(ctk.CTk):
     def abrir_menu_comandos(self):
         janela_cmd = ctk.CTkToplevel(self)
         janela_cmd.title("Paleta de Comandos")
-        janela_cmd.geometry("420x340")
         janela_cmd.grab_set()
 
         lbl_titulo = ctk.CTkLabel(janela_cmd, text="Comandos Rápidos & Atalhos", font=("Segoe UI", 13, "bold"))
@@ -217,6 +237,8 @@ class TodoApp(ctk.CTk):
                 self.focar_nova_tarefa()
             elif tipo == "calendario":
                 self.abrir_calendario()
+            elif tipo == "excluir_sel":
+                self.excluir_tarefa_selecionada()
             elif tipo == "limpar":
                 self.excluir_todas_tarefas()
 
@@ -226,13 +248,15 @@ class TodoApp(ctk.CTk):
         btn_cal = ctk.CTkButton(frame_opcoes, text="Abrir Calendário  (Ctrl + C)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=36, command=lambda: executar_comando("calendario"))
         btn_cal.pack(fill="x", pady=2)
 
-        btn_limpar = ctk.CTkButton(frame_opcoes, text="Limpar Todas as Tarefas  (Ctrl + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=36, command=lambda: executar_comando("limpar"))
+        btn_excluir = ctk.CTkButton(frame_opcoes, text="Excluir Selecionada  (Ctrl + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=36, command=lambda: executar_comando("excluir_sel"))
+        btn_excluir.pack(fill="x", pady=2)
+
+        btn_limpar = ctk.CTkButton(frame_opcoes, text="Limpar Todas as Tarefas  (Ctrl + Shift + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=36, command=lambda: executar_comando("limpar"))
         btn_limpar.pack(fill="x", pady=2)
 
     def abrir_calendario(self):
         janela_cal = ctk.CTkToplevel(self)
         janela_cal.title("Calendário de Prazos")
-        janela_cal.geometry("340x370")
         janela_cal.grab_set()
 
         lbl_cal = ctk.CTkLabel(janela_cal, text="Selecione uma Data para Prazo:", font=("Segoe UI", 13, "bold"))
@@ -259,7 +283,6 @@ class TodoApp(ctk.CTk):
 
         janela_notas = ctk.CTkToplevel(self)
         janela_notas.title("Bloco de Notas da Tarefa")
-        janela_notas.geometry("450x400")
         janela_notas.grab_set()
 
         lbl_info = ctk.CTkLabel(janela_notas, text=f"Notas para: {titulo_tarefa}", font=("Segoe UI", 13, "bold"))
