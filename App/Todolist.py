@@ -91,7 +91,7 @@ class TodoApp(ctk.CTk):
         self.btn_excluir_sel.pack(side="left", fill="x", expand=True, padx=4)
 
         # Botão Limpar Tudo Global
-        self.btn_excluir_todas = ctk.CTkButton(self.acoes_frame, text="Limpar", font=("Segoe UI", 11, "bold"), fg_color="#4b5563", hover_color="#4b5563", height=38, corner_radius=6, command=self.excluir_todas_tarefas, state="disabled")
+        self.btn_excluir_todas = ctk.CTkButton(self.acoes_frame, text="Limpar tudo", font=("Segoe UI", 11, "bold"), fg_color="#4b5563", hover_color="#4b5563", height=38, corner_radius=6, command=self.excluir_todas_tarefas, state="disabled")
         self.btn_excluir_todas.pack(side="right", fill="x", expand=True, padx=(4, 0))
 
         self.carregar_tarefas()
