@@ -15,7 +15,7 @@ pip install pyinstaller
 Logo em seguida, é preciso ir até local onde se encontra o arquivo Todolist.py e rodar o comando:
 
 ```bash
-pyinstaller --onefile Todolist.py
+pyinstaller --noconsole --onefile Todolist.py
 ```
 
 Após isso, vá até a pasta dist e o executável exe estará lá.
