@@ -67,7 +67,7 @@ class TodoApp(ctk.CTk):
         self.btn_adicionar.pack(side="right")
 
         # Área de Rolagem Moderna para listar as tarefas
-        self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Tarefas Pendentes (Ctrl + / para Comandos)", label_font=("Segoe UI", 11, "bold"), corner_radius=10)
+        self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Tarefas pendentes (Ctrl + / para Comandos)", label_font=("Segoe UI", 11, "bold"), corner_radius=10)
         self.scroll_frame.pack(fill="both", expand=True, padx=25, pady=(0, 10))
 
         # Container fixo inferior para os botões globais
