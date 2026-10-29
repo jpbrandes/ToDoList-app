@@ -1,6 +1,6 @@
 # ToDoList-app
 
-Esse repositório funciona em conjunto com o REA sobre frameworks, o desenvolvimento refatora o aplicativo para funcionar de maneira standalone. O Todolist do Recurso Educacional Aberto é extremamente dependente do Uvicorn rodando em segundo plano. Com essa refatoração, o aplicativo já possui uma interface lógica e funciona de maneira independente e sem internet.
+Esse repositório funciona em conjunto com o REA sobre frameworks, o desenvolvimento atual refatora o aplicativo do REA para funcionar de maneira standalone(indepentente). O Todolist do Recurso Educacional Aberto é extremamente dependente do Uvicorn rodando em segundo plano. Com essa refatoração, o aplicativo já possui uma interface gráfica lógica e funciona de maneira independente e sem internet.
 
 ---
 
@@ -30,4 +30,4 @@ O projeto usa as seguintes dependências:
 pip install customtkinter tkcalendar pillow
 ```
 
-Isso sem contar o SQLite e Python como linguagem base.
+Isso sem contar o SQLite como banco de dados e Python como linguagem base.
