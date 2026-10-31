@@ -6,7 +6,7 @@ from tkcalendar import Calendar
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
-# --- 1. CONFIGURAÇÃO DO BANCO DE DADOS LOCAL ---
+# --- 1. CONFIGURAÇÃO DO BANCO DE DIRETÓRIOS E BANCO DE DADOS LOCAL ---
 def conectar_db():
     return sqlite3.connect("data.db")
 
@@ -21,6 +21,13 @@ def inicializar_db():
             detalhes TEXT DEFAULT ''
         )
     """)
+    
+    # Verificação de segurança: Adiciona a coluna 'prioridade' caso o banco antigo não a possua
+    cursor.execute("PRAGMA table_info(tarefas)")
+    colunas = [col[1] for col in cursor.fetchall()]
+    if "prioridade" not in colunas:
+        cursor.execute("ALTER TABLE tarefas ADD COLUMN prioridade TEXT DEFAULT 'Baixa'")
+        
     conn.commit()
     conn.close()
 
@@ -32,7 +39,7 @@ class TodoApp(ctk.CTk):
         super().__init__()
 
         self.title("ToDoList")
-        self.minsize(480, 500)
+        self.minsize(520, 500)
 
         # Configuração de peso das linhas da janela principal para redimensionamento fluido
         self.grid_rowconfigure(2, weight=1)
@@ -53,12 +60,28 @@ class TodoApp(ctk.CTk):
         self.titulo_label = ctk.CTkLabel(self, text="To-Do List", font=("Segoe UI", 22, "bold"))
         self.titulo_label.pack(pady=(20, 10))
 
-        # Container para Input, Botão Adicionar e Botão Calendário
+        # Container para Input, Seletor de Prioridade, Botão Calendário e Botão Adicionar
         self.input_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.input_frame.pack(fill="x", padx=25, pady=(0, 10))
 
         self.entrada_tarefa = ctk.CTkEntry(self.input_frame, placeholder_text="O que você precisa fazer?", font=("Segoe UI", 13), height=42, corner_radius=8)
         self.entrada_tarefa.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+        # Menu Suspenso de Prioridades
+        self.prioridade_var = ctk.StringVar(value="Baixa")
+        self.menu_prioridade = ctk.CTkOptionMenu(
+            self.input_frame, 
+            values=["Baixa", "Média", "Alta"], 
+            variable=self.prioridade_var,
+            font=("Segoe UI", 11, "bold"),
+            width=95,
+            height=42,
+            corner_radius=8,
+            fg_color="#374151",
+            button_color="#4b5563",
+            button_hover_color="#6b7280"
+        )
+        self.menu_prioridade.pack(side="left", padx=(0, 8))
 
         self.btn_calendario = ctk.CTkButton(self.input_frame, text="📅", font=("Segoe UI", 14), width=42, height=42, corner_radius=8, fg_color="#374151", hover_color="#4b5563", command=self.abrir_calendario)
         self.btn_calendario.pack(side="left", padx=(0, 8))
@@ -106,7 +129,18 @@ class TodoApp(ctk.CTk):
 
         conn = conectar_db()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, titulo, concluida, detalhes FROM tarefas")
+        # Ordenação inteligente: prioridades Altas primeiro, depois Médias, depois Baixas
+        cursor.execute("""
+            SELECT id, titulo, concluida, detalhes, prioridade 
+            FROM tarefas 
+            ORDER BY 
+                concluida ASC,
+                CASE prioridade 
+                    WHEN 'Alta' THEN 1 
+                    WHEN 'Média' THEN 2 
+                    ELSE 3 
+                END ASC
+        """)
         registros = cursor.fetchall()
         conn.close()
 
@@ -116,22 +150,32 @@ class TodoApp(ctk.CTk):
             return
 
         for indice, reg in enumerate(registros, start=1):
-            tarefa_id, titulo, concluida, detalhes = reg[0], reg[1], reg[2], reg[3]
+            tarefa_id, titulo, concluida, detalhes, prioridade = reg[0], reg[1], reg[2], reg[3], reg[4]
 
-            row_frame = ctk.CTkFrame(self.scroll_frame, fg_color="#2a2a2a" if concluida == 0 else "#222222", corner_radius=6)
+            row_frame = ctk.CTkFrame(self.scroll_frame, fg_color="#2a2a2a" if concluida == 0 else "#222222", corner_radius=6, height=45)
             row_frame.pack(fill="x", pady=4, padx=5)
+            row_frame.pack_propagate(False) # Mantém a altura fixa para garantir o alinhamento perfeito
             self.frames_tarefas[tarefa_id] = row_frame
 
+            # Indicadores visuais de prioridade por cores/emojis
+            if prioridade == "Alta":
+                tag_prioridade = "🔴 [Alta]"
+                cor_prioridade = "#f87171"
+            elif prioridade == "Média":
+                tag_prioridade = "🟡 [Média]"
+                cor_prioridade = "#fbbf24"
+            else:
+                tag_prioridade = "🟢 [Baixa]"
+                cor_prioridade = "#34d399"
+
             if concluida == 1:
-                texto_exibicao = f"✓ {indice}. {titulo}"
+                texto_exibicao = f"✓ {indice}. {titulo}  |  {tag_prioridade}"
                 cor_texto = "#9ca3af"
             else:
                 texto_exibicao = f"{indice}. {titulo}"
                 cor_texto = "#f3f4f6"
 
-            lbl_texto = ctk.CTkLabel(row_frame, text=texto_exibicao, font=("Segoe UI", 13), text_color=cor_texto, anchor="w")
-            lbl_texto.pack(side="left", fill="x", expand=True, padx=10, pady=8)
-
+            # Botão de Notas posicionado primeiro à direita
             btn_linha_notas = ctk.CTkButton(
                 row_frame, 
                 text="📝", 
@@ -144,7 +188,17 @@ class TodoApp(ctk.CTk):
                 hover_color="#b45309",
                 command=lambda tid=tarefa_id, t_titulo=titulo: self.abrir_janela_notas(tid, t_titulo)
             )
-            btn_linha_notas.pack(side="right", padx=(0, 8), pady=5)
+            btn_linha_notas.pack(side="right", padx=10, pady=7)
+
+            # Etiqueta de prioridade posicionada à esquerda do botão de notas
+            if concluida == 0:
+                lbl_tag = ctk.CTkLabel(row_frame, text=tag_prioridade, font=("Segoe UI", 11, "bold"), text_color=cor_prioridade)
+                lbl_tag.pack(side="right", padx=5, pady=7)
+                lbl_tag.bind("<Button-1>", lambda event, tid=tarefa_id, stat=concluida: self.selecionar_tarefa(tid, stat))
+
+            # Texto da tarefa ocupando o espaço restante à esquerda
+            lbl_texto = ctk.CTkLabel(row_frame, text=texto_exibicao, font=("Segoe UI", 13), text_color=cor_texto, anchor="w")
+            lbl_texto.pack(side="left", fill="x", expand=True, padx=12, pady=7)
 
             for widget in [row_frame, lbl_texto]:
                 widget.bind("<Button-1>", lambda event, tid=tarefa_id, stat=concluida: self.selecionar_tarefa(tid, stat))
@@ -211,13 +265,16 @@ class TodoApp(ctk.CTk):
             messagebox.showwarning("Aviso", "Escreva uma tarefa antes de adicionar!")
             return
 
+        prioridade_escolhida = self.prioridade_var.get()
+
         conn = conectar_db()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO tarefas (titulo, concluida, detalhes) VALUES (?, 0, '')", (texto,))
+        cursor.execute("INSERT INTO tarefas (titulo, concluida, detalhes, prioridade) VALUES (?, 0, '', ?)", (texto, prioridade_escolhida))
         conn.commit()
         conn.close()
 
         self.entrada_tarefa.delete(0, "end")
+        self.prioridade_var.set("Baixa") # Reseta para o padrão
         self.carregar_tarefas()
 
     def abrir_menu_comandos(self):
