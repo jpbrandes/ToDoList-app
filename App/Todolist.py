@@ -58,6 +58,10 @@ class TodoApp(ctk.CTk):
         self.bind("<Control-F>", lambda event: self.atalho_abrir_busca(event))
         self.bind("<Control-Shift-f>", lambda event: self.atalho_limpar_busca(event))
         self.bind("<Control-Shift-F>", lambda event: self.atalho_limpar_busca(event))
+        self.bind("<Control-r>", lambda event: self.atalho_renomear_tarefa(event))
+        self.bind("<Control-R>", lambda event: self.atalho_renomear_tarefa(event))
+        self.bind("<Control-m>", lambda event: self.atalho_duplicar_tarefa(event))
+        self.bind("<Control-M>", lambda event: self.atalho_duplicar_tarefa(event))
         self.bind("<Control-d>", lambda event: self.atalho_excluir_selecionada(event))
         self.bind("<Control-D>", lambda event: self.atalho_excluir_selecionada(event))
         self.bind("<Control-Shift-d>", lambda event: self.atalho_excluir_todas(event))
@@ -73,6 +77,8 @@ class TodoApp(ctk.CTk):
 
         self.entrada_tarefa = ctk.CTkEntry(self.input_frame, placeholder_text="O que você precisa fazer?", font=("Segoe UI", 13), height=42, corner_radius=8)
         self.entrada_tarefa.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        # Permite adicionar a tarefa pressionando Enter direto no campo de texto
+        self.entrada_tarefa.bind("<Return>", lambda event: self.adicionar_tarefa())
 
         # Menu Suspenso de Prioridades
         self.prioridade_var = ctk.StringVar(value="Baixa")
@@ -113,19 +119,23 @@ class TodoApp(ctk.CTk):
 
         # Botão Concluir Global
         self.btn_concluir = ctk.CTkButton(self.acoes_frame, text="Concluir", font=("Segoe UI", 11, "bold"), fg_color="#4b5563", hover_color="#4b5563", height=38, corner_radius=6, command=self.alternar_conclusao_global, state="disabled")
-        self.btn_concluir.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        self.btn_concluir.pack(side="left", fill="x", expand=True, padx=(0, 3))
 
         # Botão Editar Global
         self.btn_editar = ctk.CTkButton(self.acoes_frame, text="Editar", font=("Segoe UI", 11, "bold"), fg_color="#4b5563", hover_color="#374151", height=38, corner_radius=6, command=self.renomear_tarefa_global, state="disabled")
-        self.btn_editar.pack(side="left", fill="x", expand=True, padx=4)
+        self.btn_editar.pack(side="left", fill="x", expand=True, padx=3)
+
+        # Botão Duplicar Global
+        self.btn_duplicar = ctk.CTkButton(self.acoes_frame, text="Duplicar", font=("Segoe UI", 11, "bold"), fg_color="#4b5563", hover_color="#374151", height=38, corner_radius=6, command=self.duplicar_tarefa_selecionada, state="disabled")
+        self.btn_duplicar.pack(side="left", fill="x", expand=True, padx=3)
 
         # Botão Excluir Selecionada Global
         self.btn_excluir_sel = ctk.CTkButton(self.acoes_frame, text="Excluir", font=("Segoe UI", 11, "bold"), fg_color="#4b5563", hover_color="#4b5563", height=38, corner_radius=6, command=self.excluir_tarefa_selecionada, state="disabled")
-        self.btn_excluir_sel.pack(side="left", fill="x", expand=True, padx=4)
+        self.btn_excluir_sel.pack(side="left", fill="x", expand=True, padx=3)
 
         # Botão Limpar Tudo Global
         self.btn_excluir_todas = ctk.CTkButton(self.acoes_frame, text="Limpar tudo", font=("Segoe UI", 11, "bold"), fg_color="#4b5563", hover_color="#4b5563", height=38, corner_radius=6, command=self.excluir_todas_tarefas, state="disabled")
-        self.btn_excluir_todas.pack(side="right", fill="x", expand=True, padx=(4, 0))
+        self.btn_excluir_todas.pack(side="right", fill="x", expand=True, padx=(3, 0))
 
         self.carregar_tarefas()
 
@@ -284,10 +294,12 @@ class TodoApp(ctk.CTk):
                 self.btn_concluir.configure(text="Concluir", fg_color="#16a34a", hover_color="#15803d", state="normal")
 
             self.btn_editar.configure(state="normal")
+            self.btn_duplicar.configure(fg_color="#2563eb", hover_color="#1d4ed8", state="normal")
             self.btn_excluir_sel.configure(fg_color="#ef4444", hover_color="#dc2626", state="normal")
         else:
             self.btn_concluir.configure(text="Concluir", fg_color="#4b5563", hover_color="#4b5563", state="disabled")
             self.btn_editar.configure(fg_color="#4b5563", hover_color="#4b5563", state="disabled")
+            self.btn_duplicar.configure(fg_color="#4b5563", hover_color="#4b5563", state="disabled")
             self.btn_excluir_sel.configure(fg_color="#4b5563", hover_color="#4b5563", state="disabled")
 
         if total_tarefas > 0:
@@ -313,6 +325,14 @@ class TodoApp(ctk.CTk):
     def atalho_limpar_busca(self, event):
         if self.termo_busca_atual:
             self.carregar_tarefas("")
+        return "break"
+
+    def atalho_renomear_tarefa(self, event):
+        self.renomear_tarefa_global()
+        return "break"
+
+    def atalho_duplicar_tarefa(self, event):
+        self.duplicar_tarefa_selecionada()
         return "break"
 
     def atalho_excluir_selecionada(self, event):
@@ -341,10 +361,29 @@ class TodoApp(ctk.CTk):
         self.prioridade_var.set("Baixa") # Reseta para o padrão
         self.carregar_tarefas(self.termo_busca_atual) # Mantém a busca atual se houver
 
+    def duplicar_tarefa_selecionada(self):
+        if self.tarefa_selecionada_id is None:
+            return
+
+        conn = conectar_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT titulo, detalhes, prioridade FROM tarefas WHERE id = ?", (self.tarefa_selecionada_id,))
+        reg = cursor.fetchone()
+
+        if reg:
+            titulo_original, detalhes, prioridade = reg[0], reg[1], reg[2]
+            novo_titulo = f"{titulo_original} (Cópia)"
+
+            cursor.execute("INSERT INTO tarefas (titulo, concluida, detalhes, prioridade) VALUES (?, 0, ?, ?)", (novo_titulo, detalhes, prioridade))
+            conn.commit()
+
+        conn.close()
+        self.carregar_tarefas(self.termo_busca_atual)
+
     def abrir_menu_comandos(self):
         janela_cmd = ctk.CTkToplevel(self)
         janela_cmd.title("Paleta de Comandos")
-        janela_cmd.geometry("440x380") # Janela ajustada para o novo comando
+        janela_cmd.geometry("440x450")
         janela_cmd.grab_set()
 
         lbl_titulo = ctk.CTkLabel(janela_cmd, text="Comandos Rápidos & Atalhos", font=("Segoe UI", 14, "bold"))
@@ -363,6 +402,10 @@ class TodoApp(ctk.CTk):
                 self.abrir_janela_busca()
             elif tipo == "limpar_busca":
                 self.carregar_tarefas("")
+            elif tipo == "renomear":
+                self.renomear_tarefa_global()
+            elif tipo == "duplicar":
+                self.duplicar_tarefa_selecionada()
             elif tipo == "excluir_sel":
                 self.excluir_tarefa_selecionada()
             elif tipo == "limpar":
@@ -379,6 +422,12 @@ class TodoApp(ctk.CTk):
 
         btn_limpar_busca = ctk.CTkButton(frame_opcoes, text="Limpar Filtro de Busca  (Ctrl + Shift + F)", anchor="w", fg_color="transparent", text_color="#60a5fa", hover_color="#374151", height=38, command=lambda: executar_comando("limpar_busca"))
         btn_limpar_busca.pack(fill="x", pady=2)
+
+        btn_renomear = ctk.CTkButton(frame_opcoes, text="Renomear Selecionada  (Ctrl + R)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=38, command=lambda: executar_comando("renomear"))
+        btn_renomear.pack(fill="x", pady=2)
+
+        btn_duplicar = ctk.CTkButton(frame_opcoes, text="Duplicar Selecionada  (Ctrl + M)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=38, command=lambda: executar_comando("duplicar"))
+        btn_duplicar.pack(fill="x", pady=2)
 
         btn_excluir = ctk.CTkButton(frame_opcoes, text="Excluir Selecionada  (Ctrl + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=38, command=lambda: executar_comando("excluir_sel"))
         btn_excluir.pack(fill="x", pady=2)
@@ -401,7 +450,6 @@ class TodoApp(ctk.CTk):
         if self.termo_busca_atual:
             entrada_termo.insert(0, self.termo_busca_atual)
 
-        # Força o foco absoluto no campo de texto logo após a janela abrir (com um pequeno delay para sobrepor o grab_set)
         janela_busca.after(100, lambda: entrada_termo.focus_force())
 
         def executar_busca(event=None):
