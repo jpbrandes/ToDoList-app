@@ -4,9 +4,9 @@ Esse repositório funciona em conjunto com o REA sobre frameworks, o desenvolvim
 
 ---
 
-# Compilar o projeto
+# Empacotar o projeto
 
-Para compilar o projeto, é necessário instalar o Pyinstaller, ele pode ser instalado através do pip do Python:
+Para empacotar o projeto em um executável puro, é necessário instalar o Pyinstaller, ele pode ser instalado através do pip do Python:
 
 ```bash
 pip install pyinstaller
