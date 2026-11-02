@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 import sqlite3
+import os
 from tkcalendar import Calendar
 
 ctk.set_appearance_mode("Dark")
@@ -8,7 +9,8 @@ ctk.set_default_color_theme("blue")
 
 # --- 1. CONFIGURAÇÃO DO BANCO DE DIRETÓRIOS E BANCO DE DADOS LOCAL ---
 def conectar_db():
-    return sqlite3.connect("data.db")
+    conn = sqlite3.connect("data.db")
+    return conn
 
 def inicializar_db():
     conn = conectar_db()
@@ -68,6 +70,8 @@ class TodoApp(ctk.CTk):
         self.bind("<Control-Shift-D>", lambda event: self.atalho_excluir_todas(event))
         self.bind("<Control-w>", lambda event: self.atalho_fechar_app(event))
         self.bind("<Control-W>", lambda event: self.atalho_fechar_app(event))
+        self.bind("<Control-u>", lambda event: self.atalho_recarregar_app(event))
+        self.bind("<Control-U>", lambda event: self.atalho_recarregar_app(event))
 
         # Título Principal
         self.titulo_label = ctk.CTkLabel(self, text="To-Do List", font=("Segoe UI", 22, "bold"))
@@ -154,16 +158,24 @@ class TodoApp(ctk.CTk):
 
         self.carregar_tarefas()
 
+    def verificar_e_recriar_db(self):
+        """Garante que a tabela e colunas existam sempre, recriando se o arquivo foi apagado."""
+        inicializar_db()
+
     def atualizar_estatisticas(self):
-        conn = conectar_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM tarefas")
-        total = cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM tarefas WHERE concluida = 0")
-        pendentes = cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM tarefas WHERE concluida = 1")
-        concluidas = cursor.fetchone()[0]
-        conn.close()
+        try:
+            self.verificar_e_recriar_db()
+            conn = conectar_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM tarefas")
+            total = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM tarefas WHERE concluida = 0")
+            pendentes = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM tarefas WHERE concluida = 1")
+            concluidas = cursor.fetchone()[0]
+            conn.close()
+        except sqlite3.OperationalError:
+            total, pendentes, concluidas = 0, 0, 0
 
         self.lbl_stats_total.configure(text=f"Total: {total}")
         self.lbl_stats_pendentes.configure(text=f"Pendentes: {pendentes}")
@@ -185,37 +197,41 @@ class TodoApp(ctk.CTk):
         else:
             self.scroll_frame.configure(label_text="Tarefas pendentes (Ctrl + / para Comandos)")
 
-        conn = conectar_db()
-        cursor = conn.cursor()
+        try:
+            self.verificar_e_recriar_db()
+            conn = conectar_db()
+            cursor = conn.cursor()
 
-        if self.termo_busca_atual:
-            cursor.execute("""
-                SELECT id, titulo, concluida, detalhes, prioridade 
-                FROM tarefas 
-                WHERE titulo LIKE ?
-                ORDER BY 
-                    concluida ASC,
-                    CASE prioridade 
-                        WHEN 'Alta' THEN 1 
-                        WHEN 'Média' THEN 2 
-                        ELSE 3 
-                    END ASC
-            """, (f"%{self.termo_busca_atual}%",))
-        else:
-            cursor.execute("""
-                SELECT id, titulo, concluida, detalhes, prioridade 
-                FROM tarefas 
-                ORDER BY 
-                    concluida ASC,
-                    CASE prioridade 
-                        WHEN 'Alta' THEN 1 
-                        WHEN 'Média' THEN 2 
-                        ELSE 3 
-                    END ASC
-            """)
+            if self.termo_busca_atual:
+                cursor.execute("""
+                    SELECT id, titulo, concluida, detalhes, prioridade 
+                    FROM tarefas 
+                    WHERE titulo LIKE ?
+                    ORDER BY 
+                        concluida ASC,
+                        CASE prioridade 
+                            WHEN 'Alta' THEN 1 
+                            WHEN 'Média' THEN 2 
+                            ELSE 3 
+                        END ASC
+                """, (f"%{self.termo_busca_atual}%",))
+            else:
+                cursor.execute("""
+                    SELECT id, titulo, concluida, detalhes, prioridade 
+                    FROM tarefas 
+                    ORDER BY 
+                        concluida ASC,
+                        CASE prioridade 
+                            WHEN 'Alta' THEN 1 
+                            WHEN 'Média' THEN 2 
+                            ELSE 3 
+                        END ASC
+                """)
 
-        registros = cursor.fetchall()
-        conn.close()
+            registros = cursor.fetchall()
+            conn.close()
+        except sqlite3.OperationalError:
+            registros = []
 
         if self.termo_busca_atual:
             frame_limpar_busca = ctk.CTkFrame(self.scroll_frame, fg_color="#1f2937", corner_radius=6, height=36)
@@ -306,11 +322,15 @@ class TodoApp(ctk.CTk):
         self.atualizar_estado_botoes_globais()
 
     def atualizar_estado_botoes_globais(self):
-        conn = conectar_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM tarefas")
-        total_tarefas = cursor.fetchone()[0]
-        conn.close()
+        try:
+            self.verificar_e_recriar_db()
+            conn = conectar_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM tarefas")
+            total_tarefas = cursor.fetchone()[0]
+            conn.close()
+        except sqlite3.OperationalError:
+            total_tarefas = 0
 
         if self.tarefa_selecionada_id is not None:
             if self.status_selecionado == 1:
@@ -372,6 +392,10 @@ class TodoApp(ctk.CTk):
         self.destroy()
         return "break"
 
+    def atalho_recarregar_app(self, event):
+        self.carregar_tarefas(self.termo_busca_atual)
+        return "break"
+
     def adicionar_tarefa(self):
         texto = self.entrada_tarefa.get().strip()
         if not texto:
@@ -380,6 +404,7 @@ class TodoApp(ctk.CTk):
 
         prioridade_escolhida = self.prioridade_var.get()
 
+        self.verificar_e_recriar_db()
         conn = conectar_db()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO tarefas (titulo, concluida, detalhes, prioridade) VALUES (?, 0, '', ?)", (texto, prioridade_escolhida))
@@ -394,6 +419,7 @@ class TodoApp(ctk.CTk):
         if self.tarefa_selecionada_id is None:
             return
 
+        self.verificar_e_recriar_db()
         conn = conectar_db()
         cursor = conn.cursor()
         cursor.execute("SELECT titulo, detalhes, prioridade FROM tarefas WHERE id = ?", (self.tarefa_selecionada_id,))
@@ -412,7 +438,7 @@ class TodoApp(ctk.CTk):
     def abrir_menu_comandos(self):
         janela_cmd = ctk.CTkToplevel(self)
         janela_cmd.title("Paleta de Comandos")
-        janela_cmd.geometry("440x480")
+        janela_cmd.geometry("440x520")
         janela_cmd.grab_set()
 
         lbl_titulo = ctk.CTkLabel(janela_cmd, text="Comandos Rápidos & Atalhos", font=("Segoe UI", 14, "bold"))
@@ -435,6 +461,8 @@ class TodoApp(ctk.CTk):
                 self.renomear_tarefa_global()
             elif tipo == "duplicar":
                 self.duplicar_tarefa_selecionada()
+            elif tipo == "recarregar":
+                self.carregar_tarefas(self.termo_busca_atual)
             elif tipo == "excluir_sel":
                 self.excluir_tarefa_selecionada()
             elif tipo == "limpar":
@@ -459,6 +487,9 @@ class TodoApp(ctk.CTk):
 
         btn_duplicar = ctk.CTkButton(frame_opcoes, text="Duplicar Selecionada  (Ctrl + M)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=38, command=lambda: executar_comando("duplicar"))
         btn_duplicar.pack(fill="x", pady=2)
+
+        btn_recarregar = ctk.CTkButton(frame_opcoes, text="Atualizar / Recarregar Estado  (Ctrl + U)", anchor="w", fg_color="transparent", text_color="#60a5fa", hover_color="#374151", height=38, command=lambda: executar_comando("recarregar"))
+        btn_recarregar.pack(fill="x", pady=2)
 
         btn_excluir = ctk.CTkButton(frame_opcoes, text="Excluir Selecionada  (Ctrl + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=38, command=lambda: executar_comando("excluir_sel"))
         btn_excluir.pack(fill="x", pady=2)
@@ -516,6 +547,7 @@ class TodoApp(ctk.CTk):
         btn_confirmar.pack(fill="x", padx=20, pady=(0, 20))
 
     def abrir_janela_notas(self, tarefa_id, titulo_tarefa):
+        self.verificar_e_recriar_db()
         conn = conectar_db()
         cursor = conn.cursor()
         cursor.execute("SELECT detalhes FROM tarefas WHERE id = ?", (tarefa_id,))
@@ -537,6 +569,7 @@ class TodoApp(ctk.CTk):
         def salvar_notas():
             novos_detalhes = txt_detalhes.get("1.0", "end-1c").strip()
             
+            self.verificar_e_recriar_db()
             conn = conectar_db()
             cursor = conn.cursor()
             cursor.execute("UPDATE tarefas SET detalhes = ? WHERE id = ?", (novos_detalhes, tarefa_id))
@@ -555,6 +588,7 @@ class TodoApp(ctk.CTk):
 
         novo_status = 0 if self.status_selecionado == 1 else 1
 
+        self.verificar_e_recriar_db()
         conn = conectar_db()
         cursor = conn.cursor()
         cursor.execute("UPDATE tarefas SET concluida = ? WHERE id = ?", (novo_status, self.tarefa_selecionada_id))
@@ -576,6 +610,7 @@ class TodoApp(ctk.CTk):
                 messagebox.showwarning("Aviso", "O nome da tarefa não pode ficar vazio!")
                 return
 
+            self.verificar_e_recriar_db()
             conn = conectar_db()
             cursor = conn.cursor()
             cursor.execute("UPDATE tarefas SET titulo = ? WHERE id = ?", (novo_texto, self.tarefa_selecionada_id))
@@ -587,6 +622,7 @@ class TodoApp(ctk.CTk):
         if self.tarefa_selecionada_id is None:
             return
 
+        self.verificar_e_recriar_db()
         conn = conectar_db()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM tarefas WHERE id = ?", (self.tarefa_selecionada_id,))
@@ -598,6 +634,7 @@ class TodoApp(ctk.CTk):
     def excluir_todas_tarefas(self, event=None):
         resposta = messagebox.askyesno("Confirmação", "Tem certeza absoluta que deseja apagar TODAS as tarefas?")
         if resposta:
+            self.verificar_e_recriar_db()
             conn = conectar_db()
             cursor = conn.cursor()
             cursor.execute("DELETE FROM tarefas")
