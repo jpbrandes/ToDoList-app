@@ -39,10 +39,10 @@ class TodoApp(ctk.CTk):
         super().__init__()
 
         self.title("ToDoList")
-        self.minsize(520, 500)
+        self.minsize(520, 520)
 
         # Configuração de peso das linhas da janela principal para redimensionamento fluido
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
         # Variável para rastrear o termo de busca atual
@@ -66,10 +66,26 @@ class TodoApp(ctk.CTk):
         self.bind("<Control-D>", lambda event: self.atalho_excluir_selecionada(event))
         self.bind("<Control-Shift-d>", lambda event: self.atalho_excluir_todas(event))
         self.bind("<Control-Shift-D>", lambda event: self.atalho_excluir_todas(event))
+        self.bind("<Control-w>", lambda event: self.atalho_fechar_app(event))
+        self.bind("<Control-W>", lambda event: self.atalho_fechar_app(event))
 
         # Título Principal
         self.titulo_label = ctk.CTkLabel(self, text="To-Do List", font=("Segoe UI", 22, "bold"))
-        self.titulo_label.pack(pady=(20, 10))
+        self.titulo_label.pack(pady=(15, 5))
+
+        # --- BARRA DE ESTATÍSTICAS RÁPIDAS ---
+        self.stats_frame = ctk.CTkFrame(self, fg_color="#1f2937", corner_radius=8, height=36)
+        self.stats_frame.pack(fill="x", padx=25, pady=(0, 10))
+        self.stats_frame.pack_propagate(False)
+
+        self.lbl_stats_total = ctk.CTkLabel(self.stats_frame, text="Total: 0", font=("Segoe UI", 11, "bold"), text_color="#9ca3af")
+        self.lbl_stats_total.pack(side="left", padx=15)
+
+        self.lbl_stats_pendentes = ctk.CTkLabel(self.stats_frame, text="Pendentes: 0", font=("Segoe UI", 11, "bold"), text_color="#fbbf24")
+        self.lbl_stats_pendentes.pack(side="left", padx=15)
+
+        self.lbl_stats_concluidas = ctk.CTkLabel(self.stats_frame, text="Concluídas: 0", font=("Segoe UI", 11, "bold"), text_color="#34d399")
+        self.lbl_stats_concluidas.pack(side="left", padx=15)
 
         # Container para Input, Seletor de Prioridade, Botão Calendário, Botão Busca e Botão Adicionar
         self.input_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -77,7 +93,6 @@ class TodoApp(ctk.CTk):
 
         self.entrada_tarefa = ctk.CTkEntry(self.input_frame, placeholder_text="O que você precisa fazer?", font=("Segoe UI", 13), height=42, corner_radius=8)
         self.entrada_tarefa.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        # Permite adicionar a tarefa pressionando Enter direto no campo de texto
         self.entrada_tarefa.bind("<Return>", lambda event: self.adicionar_tarefa())
 
         # Menu Suspenso de Prioridades
@@ -139,6 +154,21 @@ class TodoApp(ctk.CTk):
 
         self.carregar_tarefas()
 
+    def atualizar_estatisticas(self):
+        conn = conectar_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM tarefas")
+        total = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM tarefas WHERE concluida = 0")
+        pendentes = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM tarefas WHERE concluida = 1")
+        concluidas = cursor.fetchone()[0]
+        conn.close()
+
+        self.lbl_stats_total.configure(text=f"Total: {total}")
+        self.lbl_stats_pendentes.configure(text=f"Pendentes: {pendentes}")
+        self.lbl_stats_concluidas.configure(text=f"Concluídas: {concluidas}")
+
     def carregar_tarefas(self, termo_busca=""):
         self.termo_busca_atual = termo_busca
 
@@ -148,8 +178,8 @@ class TodoApp(ctk.CTk):
         self.frames_tarefas.clear()
         self.tarefa_selecionada_id = None
         self.atualizar_estado_botoes_globais()
+        self.atualizar_estatisticas()
 
-        # Atualiza o rótulo/etiqueta da área de rolagem para indicar o modo de busca se houver termo ativo
         if self.termo_busca_atual:
             self.scroll_frame.configure(label_text=f"🔍 Buscando por: \"{self.termo_busca_atual}\" (Ctrl + Shift + F para limpar)")
         else:
@@ -187,7 +217,6 @@ class TodoApp(ctk.CTk):
         registros = cursor.fetchall()
         conn.close()
 
-        # Se estiver no modo de busca, adicionamos um botão destacado no topo para limpar a busca
         if self.termo_busca_atual:
             frame_limpar_busca = ctk.CTkFrame(self.scroll_frame, fg_color="#1f2937", corner_radius=6, height=36)
             frame_limpar_busca.pack(fill="x", pady=(0, 6), padx=5)
@@ -219,10 +248,9 @@ class TodoApp(ctk.CTk):
 
             row_frame = ctk.CTkFrame(self.scroll_frame, fg_color="#2a2a2a" if concluida == 0 else "#222222", corner_radius=6, height=45)
             row_frame.pack(fill="x", pady=4, padx=5)
-            row_frame.pack_propagate(False) # Mantém a altura fixa para garantir o alinhamento perfeito
+            row_frame.pack_propagate(False)
             self.frames_tarefas[tarefa_id] = row_frame
 
-            # Indicadores visuais de prioridade por cores/emojis
             if prioridade == "Alta":
                 tag_prioridade = "🔴 [Alta]"
                 cor_prioridade = "#f87171"
@@ -240,7 +268,6 @@ class TodoApp(ctk.CTk):
                 texto_exibicao = f"{indice}. {titulo}"
                 cor_texto = "#f3f4f6"
 
-            # Botão de Notas posicionado primeiro à direita
             btn_linha_notas = ctk.CTkButton(
                 row_frame, 
                 text="📝", 
@@ -255,13 +282,11 @@ class TodoApp(ctk.CTk):
             )
             btn_linha_notas.pack(side="right", padx=10, pady=7)
 
-            # Etiqueta de prioridade posicionada à esquerda do botão de notas
             if concluida == 0:
                 lbl_tag = ctk.CTkLabel(row_frame, text=tag_prioridade, font=("Segoe UI", 11, "bold"), text_color=cor_prioridade)
                 lbl_tag.pack(side="right", padx=5, pady=7)
                 lbl_tag.bind("<Button-1>", lambda event, tid=tarefa_id, stat=concluida: self.selecionar_tarefa(tid, stat))
 
-            # Texto da tarefa ocupando o espaço restante à esquerda
             lbl_texto = ctk.CTkLabel(row_frame, text=texto_exibicao, font=("Segoe UI", 13), text_color=cor_texto, anchor="w")
             lbl_texto.pack(side="left", fill="x", expand=True, padx=12, pady=7)
 
@@ -343,6 +368,10 @@ class TodoApp(ctk.CTk):
         self.excluir_todas_tarefas()
         return "break"
 
+    def atalho_fechar_app(self, event):
+        self.destroy()
+        return "break"
+
     def adicionar_tarefa(self):
         texto = self.entrada_tarefa.get().strip()
         if not texto:
@@ -358,8 +387,8 @@ class TodoApp(ctk.CTk):
         conn.close()
 
         self.entrada_tarefa.delete(0, "end")
-        self.prioridade_var.set("Baixa") # Reseta para o padrão
-        self.carregar_tarefas(self.termo_busca_atual) # Mantém a busca atual se houver
+        self.prioridade_var.set("Baixa")
+        self.carregar_tarefas(self.termo_busca_atual)
 
     def duplicar_tarefa_selecionada(self):
         if self.tarefa_selecionada_id is None:
@@ -383,7 +412,7 @@ class TodoApp(ctk.CTk):
     def abrir_menu_comandos(self):
         janela_cmd = ctk.CTkToplevel(self)
         janela_cmd.title("Paleta de Comandos")
-        janela_cmd.geometry("440x450")
+        janela_cmd.geometry("440x480")
         janela_cmd.grab_set()
 
         lbl_titulo = ctk.CTkLabel(janela_cmd, text="Comandos Rápidos & Atalhos", font=("Segoe UI", 14, "bold"))
@@ -410,6 +439,8 @@ class TodoApp(ctk.CTk):
                 self.excluir_tarefa_selecionada()
             elif tipo == "limpar":
                 self.excluir_todas_tarefas()
+            elif tipo == "fechar":
+                self.destroy()
 
         btn_focar = ctk.CTkButton(frame_opcoes, text="Nova Tarefa  (Ctrl + N)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=38, command=lambda: executar_comando("focar"))
         btn_focar.pack(fill="x", pady=2)
@@ -434,6 +465,9 @@ class TodoApp(ctk.CTk):
 
         btn_limpar = ctk.CTkButton(frame_opcoes, text="Limpar Todas as Tarefas  (Ctrl + Shift + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=38, command=lambda: executar_comando("limpar"))
         btn_limpar.pack(fill="x", pady=2)
+
+        btn_fechar = ctk.CTkButton(frame_opcoes, text="Fechar Aplicação  (Ctrl + W)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=38, command=lambda: executar_comando("fechar"))
+        btn_fechar.pack(fill="x", pady=2)
 
     def abrir_janela_busca(self):
         janela_busca = ctk.CTkToplevel(self)
@@ -561,7 +595,7 @@ class TodoApp(ctk.CTk):
         
         self.carregar_tarefas(self.termo_busca_atual)
 
-    def excluir_todas_tarefas(self):
+    def excluir_todas_tarefas(self, event=None):
         resposta = messagebox.askyesno("Confirmação", "Tem certeza absoluta que deseja apagar TODAS as tarefas?")
         if resposta:
             conn = conectar_db()
