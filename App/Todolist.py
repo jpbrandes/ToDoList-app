@@ -47,8 +47,9 @@ class TodoApp(ctk.CTk):
         self.grid_rowconfigure(3, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        # Variável para rastrear o termo de busca atual
+        # Variável para rastrear o termo de busca atual e IDs carregados
         self.termo_busca_atual = ""
+        self.ids_tarefas_carregadas = []
 
         # Atalhos de Teclado Globais
         self.bind("<Control-slash>", lambda event: self.abrir_menu_comandos())
@@ -72,6 +73,10 @@ class TodoApp(ctk.CTk):
         self.bind("<Control-W>", lambda event: self.atalho_fechar_app(event))
         self.bind("<Control-u>", lambda event: self.atalho_recarregar_app(event))
         self.bind("<Control-U>", lambda event: self.atalho_recarregar_app(event))
+
+        # Atalhos de Navegação por Setas na Janela Principal
+        self.bind("<Up>", lambda event: self.navegar_setas(-1))
+        self.bind("<Down>", lambda event: self.navegar_setas(1))
 
         # Título Principal
         self.titulo_label = ctk.CTkLabel(self, text="To-Do List", font=("Segoe UI", 22, "bold"))
@@ -188,6 +193,7 @@ class TodoApp(ctk.CTk):
             widget.destroy()
 
         self.frames_tarefas.clear()
+        self.ids_tarefas_carregadas.clear()
         self.tarefa_selecionada_id = None
         self.atualizar_estado_botoes_globais()
         self.atualizar_estatisticas()
@@ -261,6 +267,9 @@ class TodoApp(ctk.CTk):
 
         for indice, reg in enumerate(registros, start=1):
             tarefa_id, titulo, concluida, detalhes, prioridade = reg[0], reg[1], reg[2], reg[3], reg[4]
+            
+            # Armazena o ID e o status para controle de navegação por setas
+            self.ids_tarefas_carregadas.append((tarefa_id, concluida))
 
             row_frame = ctk.CTkFrame(self.scroll_frame, fg_color="#2a2a2a" if concluida == 0 else "#222222", corner_radius=6, height=45)
             row_frame.pack(fill="x", pady=4, padx=5)
@@ -320,6 +329,27 @@ class TodoApp(ctk.CTk):
                 frame.configure(fg_color="#2a2a2a")
 
         self.atualizar_estado_botoes_globais()
+
+    def navegar_setas(self, direcao):
+        """Permite navegar pelas tarefas usando as setas Up e Down do teclado."""
+        if not self.ids_tarefas_carregadas:
+            return
+
+        lista_ids = [item[0] for item in self.ids_tarefas_carregadas]
+        status_dict = {item[0]: item[1] for item in self.ids_tarefas_carregadas}
+
+        if self.tarefa_selecionada_id is None:
+            novo_id = lista_ids[0] if direcao > 0 else lista_ids[-1]
+        else:
+            try:
+                indice_atual = lista_ids.index(self.tarefa_selecionada_id)
+                novo_indice = (indice_atual + direcao) % len(lista_ids)
+                novo_id = lista_ids[novo_indice]
+            except ValueError:
+                novo_id = lista_ids[0]
+
+        self.selecionar_tarefa(novo_id, status_dict[novo_id])
+        return "break"
 
     def atualizar_estado_botoes_globais(self):
         try:
