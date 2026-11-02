@@ -73,6 +73,10 @@ class TodoApp(ctk.CTk):
         self.bind("<Control-W>", lambda event: self.atalho_fechar_app(event))
         self.bind("<Control-u>", lambda event: self.atalho_recarregar_app(event))
         self.bind("<Control-U>", lambda event: self.atalho_recarregar_app(event))
+        
+        # Novo Atalho: Ctrl + K para Concluir/Desfazer a tarefa selecionada
+        self.bind("<Control-k>", lambda event: self.atalho_concluir_tarefa(event))
+        self.bind("<Control-K>", lambda event: self.atalho_concluir_tarefa(event))
 
         # Atalhos de Navegação por Setas na Janela Principal
         self.bind("<Up>", lambda event: self.navegar_setas(-1))
@@ -424,6 +428,11 @@ class TodoApp(ctk.CTk):
 
     def atalho_recarregar_app(self, event):
         self.carregar_tarefas(self.termo_busca_atual)
+        return "break"
+
+    def atalho_concluir_tarefa(self, event):
+        """Atalho Ctrl + K para alternar o status de conclusão da tarefa selecionada."""
+        self.alternar_conclusao_global()
         return "break"
 
     def adicionar_tarefa(self):
