@@ -441,6 +441,10 @@ class TodoApp(ctk.CTk):
         janela_cmd.geometry("440x520")
         janela_cmd.grab_set()
 
+        # Vincula Ctrl+W para fechar esta janela Toplevel
+        janela_cmd.bind("<Control-w>", lambda event: janela_cmd.destroy())
+        janela_cmd.bind("<Control-W>", lambda event: janela_cmd.destroy())
+
         lbl_titulo = ctk.CTkLabel(janela_cmd, text="Comandos Rápidos & Atalhos", font=("Segoe UI", 14, "bold"))
         lbl_titulo.pack(pady=(15, 10), padx=20, anchor="w")
 
@@ -506,6 +510,10 @@ class TodoApp(ctk.CTk):
         janela_busca.geometry("400x180")
         janela_busca.grab_set()
 
+        # Vincula Ctrl+W para fechar esta janela Toplevel
+        janela_busca.bind("<Control-w>", lambda event: janela_busca.destroy())
+        janela_busca.bind("<Control-W>", lambda event: janela_busca.destroy())
+
         lbl_busca = ctk.CTkLabel(janela_busca, text="Digite o termo para pesquisar:", font=("Segoe UI", 13, "bold"))
         lbl_busca.pack(pady=(20, 10), padx=20, anchor="w")
 
@@ -531,6 +539,10 @@ class TodoApp(ctk.CTk):
         janela_cal = ctk.CTkToplevel(self)
         janela_cal.title("Calendário de Prazos")
         janela_cal.grab_set()
+
+        # Vincula Ctrl+W para fechar esta janela Toplevel
+        janela_cal.bind("<Control-w>", lambda event: janela_cal.destroy())
+        janela_cal.bind("<Control-W>", lambda event: janela_cal.destroy())
 
         lbl_cal = ctk.CTkLabel(janela_cal, text="Selecione uma Data para Prazo:", font=("Segoe UI", 13, "bold"))
         lbl_cal.pack(pady=(15, 10))
@@ -558,6 +570,10 @@ class TodoApp(ctk.CTk):
         janela_notas = ctk.CTkToplevel(self)
         janela_notas.title("Bloco de Notas da Tarefa")
         janela_notas.grab_set()
+
+        # Vincula Ctrl+W para fechar esta janela Toplevel
+        janela_notas.bind("<Control-w>", lambda event: janela_notas.destroy())
+        janela_notas.bind("<Control-W>", lambda event: janela_notas.destroy())
 
         lbl_info = ctk.CTkLabel(janela_notas, text=f"Notas para: {titulo_tarefa}", font=("Segoe UI", 13, "bold"))
         lbl_info.pack(pady=(20, 10), padx=20, anchor="w")
