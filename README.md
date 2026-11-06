@@ -27,7 +27,7 @@ Logo em seguida, é preciso ir até o local onde se encontra o arquivo Todolist.
 ```bash
 pyinstaller --noconsole --onefile Todolist.py
 ```
-Explicaçao de parâmetros:
+Explicação de parâmetros:
 
 - Ao retirar o --noconsole do comando, ao iniciar a aplicação, uma janela de terminal preta acompanharia a execução do programa, o que tornaria a experiência desagradável.
 - O parâmetro --onefile empacota o código fonte em um arquivo único para execução.
