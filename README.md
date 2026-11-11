@@ -4,7 +4,7 @@ Esse repositório funciona em conjunto com o REA sobre frameworks, o desenvolvim
 
 ---
 
-# Dependências do projeto
+## Dependências do projeto
 
 O projeto usa Python e SQLite como ferramentas base, além das dependências que devem ser instaladas com o PIP (gerenciador de pacotes do Python).
 
@@ -12,7 +12,7 @@ O projeto usa Python e SQLite como ferramentas base, além das dependências que
 pip install customtkinter tkcalendar
 ```
 
-# Módulos extras usados no projeto (nativos ou contidos em outros pacotes)
+## Módulos extras usados no projeto (nativos ou contidos em outros pacotes)
 
 - datetime: responsável pela manipulação de datas e horas.
 - re: biblioteca usada para processamento e busca de texto.
@@ -21,7 +21,7 @@ pip install customtkinter tkcalendar
 
 ---
 
-# Empacotar o projeto
+## Empacotar o projeto
 
 Para empacotar o projeto em um executável puro, é necessário instalar o PyInstaller, ele pode ser instalado através do PIP do Python:
 
