@@ -12,6 +12,13 @@ O projeto usa Python e SQLite como ferramentas base, além das dependências que
 pip install customtkinter tkcalendar
 ```
 
+# Módulos extras usados no projeto (nativos ou contidos em outros pacotes)
+
+- datetime: responsável pela manipulação de datas e horas.
+- re: biblioteca usada para processamento e busca de texto.
+- os: usada para comunicação com o sistema operacional, usada principalmente para gerenciar caminhos e diretórios.
+- tkinter.messagebox: subconjunto do tkinter, focado em caixas de diálogo.
+
 ---
 
 # Empacotar o projeto
