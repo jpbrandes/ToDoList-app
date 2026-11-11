@@ -2,6 +2,8 @@ import customtkinter as ctk
 from tkinter import messagebox
 import sqlite3
 import os
+import re
+from datetime import datetime
 from tkcalendar import Calendar
 
 ctk.set_appearance_mode("Dark")
@@ -41,7 +43,7 @@ class TodoApp(ctk.CTk):
         super().__init__()
 
         self.title("ToDoList")
-        self.minsize(520, 520)
+        self.minsize(560, 520)
 
         # Configuração de peso das linhas da janela principal para redimensionamento fluido
         self.grid_rowconfigure(3, weight=1)
@@ -92,13 +94,16 @@ class TodoApp(ctk.CTk):
         self.stats_frame.pack_propagate(False)
 
         self.lbl_stats_total = ctk.CTkLabel(self.stats_frame, text="Total: 0", font=("Segoe UI", 11, "bold"), text_color="#9ca3af")
-        self.lbl_stats_total.pack(side="left", padx=15)
+        self.lbl_stats_total.pack(side="left", padx=12)
 
         self.lbl_stats_pendentes = ctk.CTkLabel(self.stats_frame, text="Pendentes: 0", font=("Segoe UI", 11, "bold"), text_color="#fbbf24")
-        self.lbl_stats_pendentes.pack(side="left", padx=15)
+        self.lbl_stats_pendentes.pack(side="left", padx=12)
+
+        self.lbl_stats_atrasadas = ctk.CTkLabel(self.stats_frame, text="Atrasadas: 0", font=("Segoe UI", 11, "bold"), text_color="#ef4444")
+        self.lbl_stats_atrasadas.pack(side="left", padx=12)
 
         self.lbl_stats_concluidas = ctk.CTkLabel(self.stats_frame, text="Concluídas: 0", font=("Segoe UI", 11, "bold"), text_color="#34d399")
-        self.lbl_stats_concluidas.pack(side="left", padx=15)
+        self.lbl_stats_concluidas.pack(side="left", padx=12)
 
         # Container para Input, Seletor de Prioridade, Botão Calendário, Botão Busca e Botão Adicionar
         self.input_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -171,6 +176,18 @@ class TodoApp(ctk.CTk):
         """Garante que a tabela e colunas existam sempre, recriando se o arquivo foi apagado."""
         inicializar_db()
 
+    def extrair_data_prazo(self, titulo):
+        """Extrai o objeto date a partir da tag [Prazo: MM/DD/YY] contida no título."""
+        match = re.search(r"\[Prazo:\s*(\d{1,2}/\d{1,2}/\d{2,4})\]", titulo)
+        if match:
+            str_data = match.group(1)
+            for fmt in ("%m/%d/%y", "%m/%d/%Y", "%d/%m/%y", "%d/%m/%Y"):
+                try:
+                    return datetime.strptime(str_data, fmt).date()
+                except ValueError:
+                    continue
+        return None
+
     def atualizar_estatisticas(self):
         try:
             self.verificar_e_recriar_db()
@@ -182,12 +199,25 @@ class TodoApp(ctk.CTk):
             pendentes = cursor.fetchone()[0]
             cursor.execute("SELECT COUNT(*) FROM tarefas WHERE concluida = 1")
             concluidas = cursor.fetchone()[0]
+            
+            # Conta atrasadas
+            cursor.execute("SELECT titulo FROM tarefas WHERE concluida = 0")
+            todas_pendentes = cursor.fetchall()
             conn.close()
+
+            hoje = datetime.now().date()
+            atrasadas = 0
+            for row in todas_pendentes:
+                data_prazo = self.extrair_data_prazo(row[0])
+                if data_prazo and data_prazo < hoje:
+                    atrasadas += 1
+
         except sqlite3.OperationalError:
-            total, pendentes, concluidas = 0, 0, 0
+            total, pendentes, concluidas, atrasadas = 0, 0, 0, 0
 
         self.lbl_stats_total.configure(text=f"Total: {total}")
         self.lbl_stats_pendentes.configure(text=f"Pendentes: {pendentes}")
+        self.lbl_stats_atrasadas.configure(text=f"Atrasadas: {atrasadas}")
         self.lbl_stats_concluidas.configure(text=f"Concluídas: {concluidas}")
 
     def carregar_tarefas(self, termo_busca=""):
@@ -217,31 +247,41 @@ class TodoApp(ctk.CTk):
                     SELECT id, titulo, concluida, detalhes, prioridade 
                     FROM tarefas 
                     WHERE titulo LIKE ?
-                    ORDER BY 
-                        concluida ASC,
-                        CASE prioridade 
-                            WHEN 'Alta' THEN 1 
-                            WHEN 'Média' THEN 2 
-                            ELSE 3 
-                        END ASC
                 """, (f"%{self.termo_busca_atual}%",))
             else:
                 cursor.execute("""
                     SELECT id, titulo, concluida, detalhes, prioridade 
-                    FROM tarefas 
-                    ORDER BY 
-                        concluida ASC,
-                        CASE prioridade 
-                            WHEN 'Alta' THEN 1 
-                            WHEN 'Média' THEN 2 
-                            ELSE 3 
-                        END ASC
+                    FROM tarefas
                 """)
 
             registros = cursor.fetchall()
             conn.close()
         except sqlite3.OperationalError:
             registros = []
+
+        # Ordenação Avançada: 
+        # 1º Concluídas por último (concluida: 0 antes de 1)
+        # 2º Atrasadas primeiro (se data_prazo < hoje)
+        # 3º Data de Vencimento mais próxima
+        # 4º Prioridade (Alta, Média, Baixa)
+        hoje = datetime.now().date()
+        mapa_prioridade = {"Alta": 1, "Média": 2, "Baixa": 3}
+
+        def chave_ordenacao(reg):
+            concluida = reg[2]
+            titulo = reg[1]
+            prioridade = reg[4]
+            data_prazo = self.extrair_data_prazo(titulo)
+            
+            # Verifica se está atrasada (0 para sim, 1 para não, garantindo que atrasadas fiquem no topo)
+            atrasada = 0 if (concluida == 0 and data_prazo and data_prazo < hoje) else 1
+            
+            # Valor padrão para datas caso não possua prazo
+            data_chave = data_prazo if data_prazo else datetime.max.date()
+            
+            return (concluida, atrasada, data_chave, mapa_prioridade.get(prioridade, 3))
+
+        registros.sort(key=chave_ordenacao)
 
         if self.termo_busca_atual:
             frame_limpar_busca = ctk.CTkFrame(self.scroll_frame, fg_color="#1f2937", corner_radius=6, height=36)
@@ -272,30 +312,39 @@ class TodoApp(ctk.CTk):
         for indice, reg in enumerate(registros, start=1):
             tarefa_id, titulo, concluida, detalhes, prioridade = reg[0], reg[1], reg[2], reg[3], reg[4]
             
-            # Armazena o ID e o status para controle de navegação por setas
             self.ids_tarefas_carregadas.append((tarefa_id, concluida))
+
+            # Verifica se está atrasada para estilização
+            data_prazo = self.extrair_data_prazo(titulo)
+            esta_atrasada = (concluida == 0 and data_prazo and data_prazo < hoje)
 
             row_frame = ctk.CTkFrame(self.scroll_frame, fg_color="#2a2a2a" if concluida == 0 else "#222222", corner_radius=6, height=45)
             row_frame.pack(fill="x", pady=4, padx=5)
             row_frame.pack_propagate(False)
             self.frames_tarefas[tarefa_id] = row_frame
 
-            if prioridade == "Alta":
-                tag_prioridade = "🔴 [Alta]"
-                cor_prioridade = "#f87171"
-            elif prioridade == "Média":
-                tag_prioridade = "🟡 [Média]"
-                cor_prioridade = "#fbbf24"
+            if esta_atrasada:
+                tag_prioridade = "[Atrasada]"
+                cor_prioridade = "#ef4444"
+                cor_texto = "#ef4444"
+                texto_exibicao = f"{indice}. {titulo}  |  {tag_prioridade}"
             else:
-                tag_prioridade = "🟢 [Baixa]"
-                cor_prioridade = "#34d399"
+                if prioridade == "Alta":
+                    tag_prioridade = "[Alta]"
+                    cor_prioridade = "#f87171"
+                elif prioridade == "Média":
+                    tag_prioridade = "[Média]"
+                    cor_prioridade = "#fbbf24"
+                else:
+                    tag_prioridade = "[Baixa]"
+                    cor_prioridade = "#34d399"
 
-            if concluida == 1:
-                texto_exibicao = f"✓ {indice}. {titulo}  |  {tag_prioridade}"
-                cor_texto = "#9ca3af"
-            else:
-                texto_exibicao = f"{indice}. {titulo}"
-                cor_texto = "#f3f4f6"
+                if concluida == 1:
+                    texto_exibicao = f"✓ {indice}. {titulo}  |  {tag_prioridade}"
+                    cor_texto = "#9ca3af"
+                else:
+                    texto_exibicao = f"{indice}. {titulo}"
+                    cor_texto = "#f3f4f6"
 
             btn_linha_notas = ctk.CTkButton(
                 row_frame, 
@@ -484,7 +533,7 @@ class TodoApp(ctk.CTk):
         janela_cmd.bind("<Control-w>", lambda event: janela_cmd.destroy())
         janela_cmd.bind("<Control-W>", lambda event: janela_cmd.destroy())
 
-        lbl_titulo = ctk.CTkLabel(janela_cmd, text="Comandos Rápidos & Atalhos", font=("Segoe UI", 14, "bold"))
+        lbl_titulo = ctk.CTkLabel(janela_cmd, text="Comandos rápidos e atalhos", font=("Segoe UI", 14, "bold"))
         lbl_titulo.pack(pady=(15, 10), padx=20, anchor="w")
 
         frame_opcoes = ctk.CTkScrollableFrame(janela_cmd, corner_radius=8)
@@ -586,7 +635,7 @@ class TodoApp(ctk.CTk):
         lbl_cal = ctk.CTkLabel(janela_cal, text="Selecione uma Data para Prazo:", font=("Segoe UI", 13, "bold"))
         lbl_cal.pack(pady=(15, 10))
 
-        cal = Calendar(janela_cal, selectmode='day', year=2026, month=10, day=24, background='#1f2937', disabledbackground='#2a2a2a', bordercolor='#374151', headersbackground='#374151', normalbackground='#2a2a2a', foreground='white', normalforeground='white', selectbackground='#1d4ed8')
+        cal = Calendar(janela_cal, selectmode='day', year=2026, month=11, day=11, background='#1f2937', disabledbackground='#2a2a2a', bordercolor='#374151', headersbackground='#374151', normalbackground='#2a2a2a', foreground='white', normalforeground='white', selectbackground='#1d4ed8')
         cal.pack(padx=20, pady=(0, 15), fill="both", expand=True)
 
         def selecionar_data():
