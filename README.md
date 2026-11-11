@@ -9,7 +9,7 @@ Esse repositório funciona em conjunto com o REA sobre frameworks, o desenvolvim
 O projeto usa Python e SQLite como ferramentas base, além das dependências que devem ser instaladas com o PIP (gerenciador de pacotes do Python).
 
 ```bash
-pip install customtkinter tkcalendar pillow
+pip install customtkinter tkcalendar
 ```
 
 ---
