@@ -14,10 +14,10 @@ pip install customtkinter tkcalendar
 
 ## Módulos extras usados no projeto (nativos ou contidos em outros pacotes)
 
-- datetime: responsável pela manipulação de datas e horas.
-- re: biblioteca usada para processamento e busca de texto.
-- os: usada para comunicação com o sistema operacional, usada principalmente para gerenciar caminhos e diretórios.
-- tkinter.messagebox: subconjunto do tkinter, focado em caixas de diálogo.
+- *datetime*: responsável pela manipulação de datas e horas.
+- *re*: biblioteca usada para processamento e busca de texto.
+- *os*: usada para comunicação com o sistema operacional, usada principalmente para gerenciar caminhos e diretórios.
+- *tkinter.messagebox*: subconjunto do tkinter, focado em caixas de diálogo.
 
 ---
 
@@ -36,7 +36,7 @@ pyinstaller --noconsole --onefile Todolist.py
 ```
 Explicação de parâmetros:
 
-- Ao retirar o --noconsole do comando, ao iniciar a aplicação, uma janela de terminal preta acompanharia a execução do programa, o que tornaria a experiência desagradável.
-- O parâmetro --onefile empacota o código fonte em um arquivo único para execução.
+- Ao retirar o *--noconsole* do comando, ao iniciar a aplicação, uma janela de terminal preta acompanharia a execução do programa, o que tornaria a experiência desagradável.
+- O parâmetro *--onefile* empacota o código fonte em um arquivo único para execução.
 
 Após isso, aguarde o processo de compilação, vá até a pasta dist e o executável exe estará lá.
