@@ -177,11 +177,20 @@ class TodoApp(ctk.CTk):
         inicializar_db()
 
     def extrair_data_prazo(self, titulo):
-        """Extrai o objeto date a partir da tag [Prazo: MM/DD/YY] contida no título."""
+        """Extrai o objeto date a partir da tag [Prazo: DD/MM/AAAA] contida no título.
+
+        Tarefas antigas, salvas com ano de 2 dígitos no formato MM/DD/AA,
+        continuam sendo lidas corretamente.
+        """
         match = re.search(r"\[Prazo:\s*(\d{1,2}/\d{1,2}/\d{2,4})\]", titulo)
         if match:
             str_data = match.group(1)
-            for fmt in ("%m/%d/%y", "%m/%d/%Y", "%d/%m/%y", "%d/%m/%Y"):
+            ano = str_data.split("/")[-1]
+            if len(ano) == 2:
+                formatos = ("%m/%d/%y", "%d/%m/%y")  # formato antigo
+            else:
+                formatos = ("%d/%m/%Y", "%m/%d/%Y")  # formato novo (dia/mês/ano)
+            for fmt in formatos:
                 try:
                     return datetime.strptime(str_data, fmt).date()
                 except ValueError:
@@ -635,7 +644,8 @@ class TodoApp(ctk.CTk):
         lbl_cal = ctk.CTkLabel(janela_cal, text="Selecione uma Data para Prazo:", font=("Segoe UI", 13, "bold"))
         lbl_cal.pack(pady=(15, 10))
 
-        cal = Calendar(janela_cal, selectmode='day', year=2026, month=11, day=11, background='#1f2937', disabledbackground='#2a2a2a', bordercolor='#374151', headersbackground='#374151', normalbackground='#2a2a2a', foreground='white', normalforeground='white', selectbackground='#1d4ed8')
+        hoje = datetime.now().date()
+        cal = Calendar(janela_cal, selectmode='day', year=hoje.year, month=hoje.month, day=hoje.day, date_pattern="dd/mm/yyyy", background='#1f2937', disabledbackground='#2a2a2a', bordercolor='#374151', headersbackground='#374151', normalbackground='#2a2a2a', foreground='white', normalforeground='white', selectbackground='#1d4ed8')
         cal.pack(padx=20, pady=(0, 15), fill="both", expand=True)
 
         def selecionar_data():
