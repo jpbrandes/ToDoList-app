@@ -2,6 +2,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 import sqlite3
 import os
+import sys
 import re
 from datetime import datetime
 from tkcalendar import Calendar
@@ -10,8 +11,20 @@ ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
 # --- 1. CONFIGURAÇÃO DO BANCO DE DIRETÓRIOS E BANCO DE DADOS LOCAL ---
+def pasta_do_app():
+    """Pasta onde o programa está: a do executável (PyInstaller) ou a do próprio .py.
+
+    Assim o banco fica sempre ao lado do programa, não importa de onde ele foi aberto
+    (terminal, atalho, menu de aplicativos...).
+    """
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+CAMINHO_DB = os.path.join(pasta_do_app(), "data.db")
+
 def conectar_db():
-    conn = sqlite3.connect("data.db")
+    conn = sqlite3.connect(CAMINHO_DB)
     return conn
 
 def inicializar_db():
