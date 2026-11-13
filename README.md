@@ -18,7 +18,7 @@ pip install customtkinter tkcalendar
 - **re**: biblioteca usada para processamento e busca de texto.
 - **os**: usada para comunicação com o sistema operacional, usada principalmente para gerenciar caminhos e diretórios.
 - **tkinter.messagebox**: subconjunto do tkinter, focado em caixas de diálogo.
-
+- **sys**: nativo do Python, usado diretamente para obter informações sobre a execução do programa.
 ---
 
 ## Empacotar o projeto
