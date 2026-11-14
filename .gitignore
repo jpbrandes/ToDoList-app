@@ -1,4 +1,4 @@
-# Usado para ignorar bancos de dados (testes).
+# Usado para ignorar bancos de dados (testes), imagens e os próprios arquivos CSV.
 *.db
 *.png
 *.csv
