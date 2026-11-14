@@ -1,3 +1,4 @@
 # Usado para ignorar bancos de dados (testes).
 *.db
 *.png
+*.csv
