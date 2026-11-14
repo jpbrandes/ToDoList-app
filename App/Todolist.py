@@ -1,5 +1,6 @@
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
+import csv
 import sqlite3
 import os
 import sys
@@ -89,6 +90,14 @@ class TodoApp(ctk.CTk):
         self.bind("<Control-u>", lambda event: self.atalho_recarregar_app(event))
         self.bind("<Control-U>", lambda event: self.atalho_recarregar_app(event))
         
+        # Atalho: Ctrl + E para exportar as tarefas em CSV
+        self.bind("<Control-e>", lambda event: self.atalho_exportar_csv(event))
+        self.bind("<Control-E>", lambda event: self.atalho_exportar_csv(event))
+
+        # Atalho: Ctrl + I para importar tarefas de um CSV
+        self.bind("<Control-i>", lambda event: self.atalho_importar_csv(event))
+        self.bind("<Control-I>", lambda event: self.atalho_importar_csv(event))
+
         # Novo Atalho: Ctrl + K para Concluir/Desfazer a tarefa selecionada
         self.bind("<Control-k>", lambda event: self.atalho_concluir_tarefa(event))
         self.bind("<Control-K>", lambda event: self.atalho_concluir_tarefa(event))
@@ -501,6 +510,145 @@ class TodoApp(ctk.CTk):
         self.carregar_tarefas(self.termo_busca_atual)
         return "break"
 
+    def atalho_exportar_csv(self, event):
+        self.exportar_csv()
+        return "break"
+
+    def exportar_csv(self):
+        """Exporta TODAS as tarefas do banco para um arquivo CSV (backup)."""
+        caminho = filedialog.asksaveasfilename(
+            parent=self,
+            title="Exportar tarefas para CSV",
+            defaultextension=".csv",
+            initialfile=f"tarefas_backup_{datetime.now().strftime('%Y-%m-%d')}.csv",
+            filetypes=[("Arquivo CSV", "*.csv"), ("Todos os arquivos", "*.*")],
+        )
+        if not caminho:
+            return  # usuário cancelou
+
+        try:
+            self.verificar_e_recriar_db()
+            conn = conectar_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, titulo, concluida, prioridade, detalhes FROM tarefas ORDER BY id")
+            registros = cursor.fetchall()
+            conn.close()
+
+            # utf-8-sig para o Excel abrir os acentos corretamente
+            with open(caminho, "w", newline="", encoding="utf-8-sig") as arquivo:
+                escritor = csv.writer(arquivo, delimiter=";")
+                escritor.writerow(["id", "titulo", "concluida", "prioridade", "prazo", "detalhes"])
+                for tarefa_id, titulo, concluida, prioridade, detalhes in registros:
+                    data_prazo = self.extrair_data_prazo(titulo)
+                    prazo = data_prazo.strftime("%d/%m/%Y") if data_prazo else ""
+                    escritor.writerow([
+                        tarefa_id,
+                        titulo,
+                        "Sim" if concluida == 1 else "Não",
+                        prioridade or "Baixa",
+                        prazo,
+                        detalhes or "",
+                    ])
+
+            messagebox.showinfo("Exportação concluída", f"{len(registros)} tarefa(s) exportada(s) para:\n{caminho}")
+        except (OSError, sqlite3.Error) as erro:
+            messagebox.showerror("Erro ao exportar", f"Não foi possível exportar as tarefas:\n{erro}")
+
+    def atalho_importar_csv(self, event):
+        self.importar_csv()
+        return "break"
+
+    def importar_csv(self):
+        """Importa tarefas de um CSV gerado pela exportação (backup).
+
+        As tarefas do arquivo são ADICIONADAS às existentes. Tarefas idênticas
+        (mesmo título, status, prioridade e notas) que já existem são ignoradas,
+        então importar o mesmo backup duas vezes não duplica nada.
+        """
+        caminho = filedialog.askopenfilename(
+            parent=self,
+            title="Importar tarefas de um CSV",
+            filetypes=[("Arquivo CSV", "*.csv"), ("Todos os arquivos", "*.*")],
+        )
+        if not caminho:
+            return  # usuário cancelou
+
+        try:
+            with open(caminho, "r", newline="", encoding="utf-8-sig") as arquivo:
+                amostra = arquivo.read(4096)
+                arquivo.seek(0)
+                try:
+                    dialeto = csv.Sniffer().sniff(amostra, delimiters=";,\t")
+                    delimitador = dialeto.delimiter
+                except csv.Error:
+                    delimitador = ";"
+                leitor = csv.DictReader(arquivo, delimiter=delimitador)
+
+                campos = [c.strip().lower() for c in (leitor.fieldnames or [])]
+                if "titulo" not in campos:
+                    messagebox.showerror(
+                        "Arquivo inválido",
+                        "O CSV precisa ter ao menos a coluna \"titulo\".\n"
+                        "Use um arquivo gerado pela exportação do próprio app."
+                    )
+                    return
+
+                novas = []
+                for linha in leitor:
+                    dados = {(k or "").strip().lower(): (v or "").strip() for k, v in linha.items()}
+                    titulo = dados.get("titulo", "")
+                    if not titulo:
+                        continue
+
+                    concluida = 1 if dados.get("concluida", "").lower() in ("sim", "1", "true", "s") else 0
+                    prioridade = dados.get("prioridade", "Baixa")
+                    if prioridade not in ("Baixa", "Média", "Alta"):
+                        prioridade = "Baixa"
+                    detalhes = dados.get("detalhes", "")
+                    novas.append((titulo, concluida, detalhes, prioridade))
+
+            if not novas:
+                messagebox.showinfo("Importação", "Nenhuma tarefa válida foi encontrada no arquivo.")
+                return
+
+            if not messagebox.askyesno(
+                "Confirmar importação",
+                f"Foram encontradas {len(novas)} tarefa(s) no arquivo.\n\n"
+                "Elas serão adicionadas às tarefas atuais (duplicatas exatas serão ignoradas).\n"
+                "Deseja continuar?"
+            ):
+                return
+
+            self.verificar_e_recriar_db()
+            conn = conectar_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT titulo, concluida, detalhes, prioridade FROM tarefas")
+            existentes = set(cursor.fetchall())
+
+            importadas = 0
+            ignoradas = 0
+            for tarefa in novas:
+                if tarefa in existentes:
+                    ignoradas += 1
+                    continue
+                cursor.execute(
+                    "INSERT INTO tarefas (titulo, concluida, detalhes, prioridade) VALUES (?, ?, ?, ?)",
+                    tarefa,
+                )
+                existentes.add(tarefa)
+                importadas += 1
+
+            conn.commit()
+            conn.close()
+
+            self.carregar_tarefas(self.termo_busca_atual)
+            messagebox.showinfo(
+                "Importação concluída",
+                f"{importadas} tarefa(s) importada(s).\n{ignoradas} duplicada(s) ignorada(s)."
+            )
+        except (OSError, UnicodeDecodeError, csv.Error, sqlite3.Error) as erro:
+            messagebox.showerror("Erro ao importar", f"Não foi possível importar o arquivo:\n{erro}")
+
     def atalho_concluir_tarefa(self, event):
         """Atalho Ctrl + K para alternar o status de conclusão da tarefa selecionada."""
         self.alternar_conclusao_global()
@@ -577,6 +725,10 @@ class TodoApp(ctk.CTk):
                 self.duplicar_tarefa_selecionada()
             elif tipo == "recarregar":
                 self.carregar_tarefas(self.termo_busca_atual)
+            elif tipo == "exportar":
+                self.exportar_csv()
+            elif tipo == "importar":
+                self.importar_csv()
             elif tipo == "excluir_sel":
                 self.excluir_tarefa_selecionada()
             elif tipo == "limpar":
@@ -604,6 +756,12 @@ class TodoApp(ctk.CTk):
 
         btn_recarregar = ctk.CTkButton(frame_opcoes, text="Atualizar / Recarregar Estado  (Ctrl + U)", anchor="w", fg_color="transparent", text_color="#60a5fa", hover_color="#374151", height=38, command=lambda: executar_comando("recarregar"))
         btn_recarregar.pack(fill="x", pady=2)
+
+        btn_exportar = ctk.CTkButton(frame_opcoes, text="Exportar Tarefas para CSV  (Ctrl + E)", anchor="w", fg_color="transparent", text_color="#34d399", hover_color="#374151", height=38, command=lambda: executar_comando("exportar"))
+        btn_exportar.pack(fill="x", pady=2)
+
+        btn_importar = ctk.CTkButton(frame_opcoes, text="Importar Tarefas de CSV  (Ctrl + I)", anchor="w", fg_color="transparent", text_color="#34d399", hover_color="#374151", height=38, command=lambda: executar_comando("importar"))
+        btn_importar.pack(fill="x", pady=2)
 
         btn_excluir = ctk.CTkButton(frame_opcoes, text="Excluir Selecionada  (Ctrl + D)", anchor="w", fg_color="transparent", text_color="#fca5a5", hover_color="#7f1d1d", height=38, command=lambda: executar_comando("excluir_sel"))
         btn_excluir.pack(fill="x", pady=2)
