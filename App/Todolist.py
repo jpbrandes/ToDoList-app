@@ -71,8 +71,8 @@ class TodoApp(ctk.CTk):
         self.bind("<Control-slash>", lambda event: self.abrir_menu_comandos())
         self.bind("<Control-n>", lambda event: self.atalho_focar_nova(event))
         self.bind("<Control-N>", lambda event: self.atalho_focar_nova(event))
-        self.bind("<Control-c>", lambda event: self.atalho_abrir_calendario(event))
-        self.bind("<Control-C>", lambda event: self.atalho_abrir_calendario(event))
+        self.bind("<Control-Shift-c>", lambda event: self.atalho_abrir_calendario(event))
+        self.bind("<Control-Shift-C>", lambda event: self.atalho_abrir_calendario(event))
         self.bind("<Control-f>", lambda event: self.atalho_abrir_busca(event))
         self.bind("<Control-F>", lambda event: self.atalho_abrir_busca(event))
         self.bind("<Control-Shift-f>", lambda event: self.atalho_limpar_busca(event))
@@ -739,7 +739,7 @@ class TodoApp(ctk.CTk):
         btn_focar = ctk.CTkButton(frame_opcoes, text="Nova Tarefa  (Ctrl + N)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=38, command=lambda: executar_comando("focar"))
         btn_focar.pack(fill="x", pady=2)
 
-        btn_cal = ctk.CTkButton(frame_opcoes, text="Abrir Calendário  (Ctrl + C)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=38, command=lambda: executar_comando("calendario"))
+        btn_cal = ctk.CTkButton(frame_opcoes, text="Abrir Calendário  (Ctrl + Shift + C)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=38, command=lambda: executar_comando("calendario"))
         btn_cal.pack(fill="x", pady=2)
 
         btn_busca = ctk.CTkButton(frame_opcoes, text="Buscar Tarefas  (Ctrl + F)", anchor="w", fg_color="transparent", text_color="#f3f4f6", hover_color="#374151", height=38, command=lambda: executar_comando("busca"))
