@@ -575,12 +575,13 @@ class TodoApp(ctk.CTk):
 
         try:
             with open(caminho, "r", newline="", encoding="utf-8-sig") as arquivo:
-                amostra = arquivo.read(4096)
+                # Decide o separador pelo cabeçalho (primeira linha), que é bem mais
+                # confiável do que analisar o conteúdo das tarefas. O app exporta com ";".
+                cabecalho = arquivo.readline()
                 arquivo.seek(0)
-                try:
-                    dialeto = csv.Sniffer().sniff(amostra, delimiters=";,\t")
-                    delimitador = dialeto.delimiter
-                except csv.Error:
+                contagem = {sep: cabecalho.count(sep) for sep in (";", ",", "\t")}
+                delimitador = max(contagem, key=contagem.get)
+                if contagem[delimitador] == 0:
                     delimitador = ";"
                 leitor = csv.DictReader(arquivo, delimiter=delimitador)
 
@@ -908,6 +909,19 @@ class TodoApp(ctk.CTk):
             return
 
         self.verificar_e_recriar_db()
+        conn = conectar_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT titulo FROM tarefas WHERE id = ?", (self.tarefa_selecionada_id,))
+        reg = cursor.fetchone()
+        conn.close()
+
+        if not reg:
+            return
+
+        # Confirmação antes de excluir (vale para o botão, o Ctrl + D e a paleta de comandos)
+        if not messagebox.askyesno("Confirmação", f"Excluir esta tarefa?\n\n\"{reg[0]}\""):
+            return
+
         conn = conectar_db()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM tarefas WHERE id = ?", (self.tarefa_selecionada_id,))
