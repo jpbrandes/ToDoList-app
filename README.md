@@ -19,6 +19,8 @@ pip install customtkinter tkcalendar
 - **os**: usada para comunicação com o sistema operacional, usada principalmente para gerenciar caminhos e diretórios.
 - **tkinter.messagebox**: subconjunto do tkinter, focado em caixas de diálogo.
 - **sys**: nativo do Python, usado diretamente para obter informações sobre a execução do programa.
+- **csv**: fornece suporte a arquivos csv, para exportar e importar.
+- **filedialog**: diálogo usado para o sistema salvar algum arquivo em determinado diretório do sistema.
 ---
 
 ## Empacotar o projeto
