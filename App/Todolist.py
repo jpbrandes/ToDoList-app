@@ -67,8 +67,13 @@ class TodoApp(ctk.CTk):
         self.termo_busca_atual = ""
         self.ids_tarefas_carregadas = []
 
-        # Atalhos de Teclado Globais
+        # Atalhos para a Paleta de Comandos (compatível com PC, Notebooks ABNT2 e Linux)
         self.bind("<Control-slash>", lambda event: self.abrir_menu_comandos())
+        self.bind("<Control-KP_Divide>", lambda event: self.abrir_menu_comandos())
+        self.bind("<Control-question>", lambda event: self.abrir_menu_comandos())
+        self.bind("<F1>", lambda event: self.abrir_menu_comandos())
+
+        # Demais Atalhos de Teclado Globais
         self.bind("<Control-n>", lambda event: self.atalho_focar_nova(event))
         self.bind("<Control-N>", lambda event: self.atalho_focar_nova(event))
         self.bind("<Control-Shift-c>", lambda event: self.atalho_abrir_calendario(event))
@@ -161,7 +166,7 @@ class TodoApp(ctk.CTk):
         self.btn_adicionar.pack(side="right")
 
         # Área de Rolagem Moderna para listar as tarefas
-        self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Tarefas pendentes (Ctrl + / para Comandos)", label_font=("Segoe UI", 11, "bold"), corner_radius=10)
+        self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Tarefas pendentes (F1 ou Ctrl + / para Comandos)", label_font=("Segoe UI", 11, "bold"), corner_radius=10)
         self.scroll_frame.pack(fill="both", expand=True, padx=25, pady=(0, 10))
 
         # Container fixo inferior para os botões globais
@@ -266,7 +271,7 @@ class TodoApp(ctk.CTk):
         if self.termo_busca_atual:
             self.scroll_frame.configure(label_text=f"🔍 Buscando por: \"{self.termo_busca_atual}\" (Ctrl + Shift + F para limpar)")
         else:
-            self.scroll_frame.configure(label_text="Tarefas pendentes (Ctrl + / para Comandos)")
+            self.scroll_frame.configure(label_text="Tarefas pendentes (F1 ou Ctrl + / para Comandos)")
 
         try:
             self.verificar_e_recriar_db()
@@ -696,13 +701,14 @@ class TodoApp(ctk.CTk):
 
     def abrir_menu_comandos(self):
         janela_cmd = ctk.CTkToplevel(self)
-        janela_cmd.title("Paleta de Comandos")
+        janela_cmd.title("Paleta de Comandos (F1 / Ctrl + /)")
         janela_cmd.geometry("440x520")
         janela_cmd.grab_set()
 
-        # Vincula Ctrl+W para fechar esta janela Toplevel
+        # Vincula Ctrl+W e Esc para fechar esta janela Toplevel
         janela_cmd.bind("<Control-w>", lambda event: janela_cmd.destroy())
         janela_cmd.bind("<Control-W>", lambda event: janela_cmd.destroy())
+        janela_cmd.bind("<Escape>", lambda event: janela_cmd.destroy())
 
         lbl_titulo = ctk.CTkLabel(janela_cmd, text="Comandos rápidos e atalhos", font=("Segoe UI", 14, "bold"))
         lbl_titulo.pack(pady=(15, 10), padx=20, anchor="w")
