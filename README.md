@@ -40,4 +40,4 @@ Explicação de parâmetros:
 - Ao retirar o **--noconsole** do comando, ao iniciar a aplicação, uma janela de terminal preta acompanharia a execução do programa, o que tornaria a experiência desagradável.
 - O parâmetro **--onefile** empacota o código fonte em um arquivo único para execução.
 
-Após isso, aguarde o processo de compilação, vá até a pasta dist e o executável exe estará lá.
+Após isso, aguarde o processo de compilação, vá até a pasta dist e o executável .exe estará lá.
