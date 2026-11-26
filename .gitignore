@@ -1,4 +1,4 @@
-# Usado para ignorar bancos de dados (testes), imagens e os próprios arquivos CSV.
+# Usado para ignorar bancos de dados (testes), imagens, os próprios arquivos CSV e os arquivos de configuração da IDE PyCharm.
 *.db
 *.png
 *.csv
