@@ -2,4 +2,4 @@
 *.db
 *.png
 *.csv
-/.idea/
+.idea/
